@@ -1,10 +1,15 @@
 import express from "express";
 import type {Request, Response} from "express"
 import pool from './src/config/db.js';
+import authRouter from "./src/routes/auth.routes.js";
 
 const app = express();
 app.use(express.json());
 const PORT = 5000;
+
+
+app.use('/api/auth', authRouter);
+
 
 app.get('/test-db', async (req: Request, res: Response) => {
     try {

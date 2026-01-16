@@ -59,7 +59,7 @@ export const login = async (req: Request, res: Response) =>{
         // correct user
 
         const token = jwt.sign(
-            { id: userFromDb.id, email: userFromDb.email },
+            { id: userFromDb.id, email: userFromDb.email } as TokenPayload,
             process.env.JWT_SECRET as string,
             { expiresIn: process.env.JWT_EXPIRATION as any }
         );
