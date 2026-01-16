@@ -29,3 +29,7 @@ export interface Comment {
     user_name?: string; 
 }
 
+export interface TokenPayload {
+    id: number;
+    email: string;
+}

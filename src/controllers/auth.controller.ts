@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 import pool from "../config/db.js";
-import type {User} from "../models/models.js"
+import type {User, TokenPayload} from "../models/models.js";
 
 export const register = async (req: Request, res: Response) =>{
     try{
@@ -26,6 +26,10 @@ export const register = async (req: Request, res: Response) =>{
     }catch(error: any){
         console.error(error);
         
+        if (error.code === '23505') {
+            return res.status(409).json({ error: "Email or Username already exists" });
+        }
+
         res.status(500).json({
             error: "server Error"
         });
@@ -38,13 +42,15 @@ export const login = async (req: Request, res: Response) =>{
 
         const sqlQuery = "SELECT * FROM users WHERE email = $1;";
         const result = await pool.query<User>(sqlQuery, [email]);
-        if(result.rows.length === 0){
+        const userFromDb = result.rows[0];
+
+        if (!userFromDb) {
             return res.status(400).json({
-                error: "user does not exist"
+                error: "User does not exist"
             });
         }
-        const userFromDb = result.rows[0];
-        if(!(await bcrypt.compare(password, userFromDb?.password as string))){
+
+        if(!(await bcrypt.compare(password, userFromDb.password))){
             return res.status(401).json({
                 error: "invalid cradintials"
             })
@@ -52,15 +58,19 @@ export const login = async (req: Request, res: Response) =>{
 
         // correct user
 
-        const token = jwt.sign({id: userFromDb!.id, email: userFromDb!.email},process.env.JWT_SECRET as string,{expiresIn: process.env.JWT_EXPIRATION as any});
+        const token = jwt.sign(
+            { id: userFromDb.id, email: userFromDb.email },
+            process.env.JWT_SECRET as string,
+            { expiresIn: process.env.JWT_EXPIRATION as any }
+        );
 
         res.status(200).json({
             message: "login successful",
             token: token,
             user: {
-                id: userFromDb!.id,
-                user_name: userFromDb!.user_name,
-                email: userFromDb!.email
+                id: userFromDb.id,
+                user_name: userFromDb.user_name,
+                email: userFromDb.email
             }
         });
     }
