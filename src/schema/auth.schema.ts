@@ -12,7 +12,7 @@ export const registerSchema = z.object({
     last_name: z.string().trim()
         .min(1, "Last name is required")
         .min(3, "Last name must be at least 3 characters")
-        .regex(nameRegex, "First name can only contain letters"),
+        .regex(nameRegex, "Last name can only contain letters"),
     user_name: z.string().trim()
         .min(1, "User name is required")
         .min(3, "User name must be at least 3 characters")

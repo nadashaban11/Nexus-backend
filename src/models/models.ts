@@ -33,3 +33,11 @@ export interface TokenPayload {
     id: number;
     email: string;
 }
+
+declare global{
+   namespace Express{
+    interface Request{
+        user?: TokenPayload
+    }
+   } 
+}
