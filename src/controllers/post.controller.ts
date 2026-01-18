@@ -56,6 +56,32 @@ export const getPosts = async (req: Request, res: Response) =>{
 
 }
 
+export const getUserPosts = async (req: Request, res: Response) =>{
+    try{
+        const userId = Number(req.user?.id);
+
+        const query = `
+            SELECT * FROM posts
+            WHERE user_id = $1
+            ORDER BY created_at DESC;
+        `;
+        const result = await pool.query(query, [userId]);
+
+        res.status(200).json({
+            message: "successful",
+            total: result.rows.length,
+            data: { 
+                posts: result.rows 
+            }
+        });
+
+    } 
+    catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Server Error" });
+    }
+}
+
 export const deletePost = async (req: Request, res: Response) => {
     try{
         const postId = Number(req.params.id);
