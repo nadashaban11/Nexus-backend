@@ -3,6 +3,8 @@ import type {Request, Response} from "express"
 import pool from './src/config/db.js';
 import authRouter from "./src/routes/auth.routes.js";
 import userRouter from "./src/routes/user.routes.js";
+import postRouter from "./src/routes/post.routes.js";
+
 
 const app = express();
 app.use(express.json());
@@ -11,6 +13,7 @@ const PORT = 5000;
 
 app.use('/api/auth', authRouter);
 app.use('/api/users', userRouter);
+app.use('/api/posts', postRouter);
 
 
 app.get('/test-db', async (req: Request, res: Response) => {

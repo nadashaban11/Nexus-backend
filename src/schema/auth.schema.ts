@@ -1,4 +1,3 @@
-import {ZodObject} from "zod";
 import * as z from "zod";
 
 const nameRegex = /^[a-zA-Z\s]+$/;
