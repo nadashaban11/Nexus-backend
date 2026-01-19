@@ -34,16 +34,26 @@ export const createPost = async (req: Request, res: Response) =>{
 export const getPosts = async (req: Request, res: Response) =>{
 
     try{
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+
         const query = `
-        SELECT * FROM posts
-        ORDER BY created_at DESC;
+            SELECT * FROM posts
+            ORDER BY created_at DESC
+            LIMIT $1 OFFSET $2;
         `;
 
-        const result = await pool.query<Post>(query);
+        const result = await pool.query<Post>(query, [limit, offset]);
+        const q = `SELECT COUNT(*) FROM posts`;
+        const total = Number((await pool.query(q)).rows[0].count);
 
         res.status(200).json({
             message: "successful",
-            total : result.rows.length,
+            total : total,
+            page: page,
+            limit: limit,
+            total_pages: Math.ceil(total/limit),
             data: {posts: result.rows}
         });
     }
