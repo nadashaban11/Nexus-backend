@@ -38,31 +38,40 @@ export const addComment = async (req: Request, res: Response) => {
 }
 
 export const getCommentsOfPost = async (req: Request, res: Response) => {
-    try{
+    try {
         const postId = Number(req.params.id);
+        
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        const offset = (page - 1) * limit;
+
         const query = `
-            SELECT c.id,
-                c.content,
-                c.created_at,
-                c.updated_at,
-                u.id AS user_id,
-                u.user_name
+            SELECT 
+                c.id, c.content, c.created_at, c.updated_at,
+                u.id AS user_id, u.user_name
             FROM comments c 
             JOIN users u ON c.user_id = u.id
             WHERE c.post_id = $1
-            ORDER BY c.created_at ASC; 
+            ORDER BY c.created_at ASC
+            LIMIT $2 OFFSET $3;
         `;
 
-        const result = await pool.query(query, [postId]);
+        const result = await pool.query(query, [postId, limit, offset]);
+
+        const countQuery = `SELECT COUNT(*) FROM comments WHERE post_id = $1`;
+        const countResult = await pool.query(countQuery, [postId]);
+        const total = Number(countResult.rows[0].count);
 
         res.status(200).json({
             message: "successful",
-            total: result.rows.length,
+            total: total,
+            page: page,
+            limit: limit,
+            total_pages: Math.ceil(total / limit),
             data: { comments: result.rows }
         });
 
-    } 
-    catch (error) {
+    } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Server Error" });
     }

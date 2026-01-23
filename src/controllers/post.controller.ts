@@ -38,15 +38,32 @@ export const getPosts = async (req: Request, res: Response) =>{
         const limit = Number(req.query.limit) || 10;
         const offset = (page - 1) * limit;
 
+        const s = req.query.search as string || "";
+
+        let searchQuery = "";
+        let params: (string | number)[] = [limit, offset];
+
+        if(s){
+            searchQuery = "WHERE posts.title ILIKE $3 OR posts.content ILIKE $3";
+            params.push(`%${s}%`)
+        }
+
         const query = `
             SELECT * FROM posts
+            ${searchQuery}
             ORDER BY created_at DESC
             LIMIT $1 OFFSET $2;
         `;
 
-        const result = await pool.query<Post>(query, [limit, offset]);
-        const q = `SELECT COUNT(*) FROM posts`;
-        const total = Number((await pool.query(q)).rows[0].count);
+        const result = await pool.query<Post>(query, params);
+
+        const q = (!s)? `SELECT COUNT(*) FROM posts` : 
+            `SELECT COUNT(*) FROM posts
+             WHERE posts.title ILIKE $1 OR posts.content ILIKE $1
+        `;
+
+        const countParams = s ? [`%${s}%`] : [];
+        const total = Number((await pool.query(q, countParams)).rows[0].count);
 
         res.status(200).json({
             message: "successful",
@@ -66,27 +83,52 @@ export const getPosts = async (req: Request, res: Response) =>{
 
 }
 
-export const getUserPosts = async (req: Request, res: Response) =>{
-    try{
-        const userId = Number(req.user?.id);
+export const getUserPosts = async (req: Request, res: Response) => {
+    try {
+        const userId = Number(req.user?.id); // ده دايماً $1
+        
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10; // ده دايماً $2
+        const offset = (page - 1) * limit;           // ده دايماً $3
+        
+        const s = req.query.search as string || "";
+
+        let params: any[] = [userId, limit, offset];
+        let searchClause = "";
+
+        if (s) {
+            searchClause = "AND (title ILIKE $4 OR content ILIKE $4)";
+            params.push(`%${s}%`);
+        }
 
         const query = `
             SELECT * FROM posts
-            WHERE user_id = $1
-            ORDER BY created_at DESC;
+            WHERE user_id = $1 
+            ${searchClause}
+            ORDER BY created_at DESC
+            LIMIT $2 OFFSET $3;
         `;
-        const result = await pool.query(query, [userId]);
+        
+        const result = await pool.query(query, params);
+
+        const countQuery = s 
+            ? `SELECT COUNT(*) FROM posts WHERE user_id = $1 AND (title ILIKE $2 OR content ILIKE $2)`
+            : `SELECT COUNT(*) FROM posts WHERE user_id = $1`;
+            
+        const countParams = s ? [userId, `%${s}%`] : [userId];
+        
+        const total = Number((await pool.query(countQuery, countParams)).rows[0].count);
 
         res.status(200).json({
             message: "successful",
-            total: result.rows.length,
-            data: { 
-                posts: result.rows 
-            }
+            total: total,
+            page: page,
+            limit: limit,
+            total_pages: Math.ceil(total / limit),
+            data: { posts: result.rows }
         });
 
-    } 
-    catch (error) {
+    } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Server Error" });
     }

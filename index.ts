@@ -1,5 +1,5 @@
 import express from "express";
-import type {Request, Response} from "express"
+import type {Request, Response} from "express";
 import pool from './src/config/db.js';
 import authRouter from "./src/routes/auth.routes.js";
 import userRouter from "./src/routes/user.routes.js";
