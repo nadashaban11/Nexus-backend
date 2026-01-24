@@ -6,7 +6,8 @@ export const createPostSchema = z.object({
         .min(3, "title must be at least 3 characters")
         .max(200, "title is too long"),
     content: z.string().optional(),
-    url: z.string().trim().url("must be a valid URL")
+    url: z.string().trim().url("must be a valid URL"),
+    tags: z.array(z.string()).optional()
 });
 
 

@@ -4,9 +4,12 @@ import pool from "../config/db.js";
 import type { Post } from "../models/models.js";
 
 export const createPost = async (req: Request, res: Response) =>{
+    const client = await pool.connect();
     try{
-        const {title, content, url} = req.body;
+        const {title, content, url, tags} = req.body;
         const userId = req.user?.id;
+
+        await client.query('BEGIN');
 
         const query = `
             INSERT INTO posts (title, content, url, user_id)
@@ -15,8 +18,34 @@ export const createPost = async (req: Request, res: Response) =>{
         `;
 
         const vals = [title, content, url, userId];
-        const result = await pool.query<Post>(query, vals);
-        const post = result.rows[0];
+        const postResult = await client.query(query, vals);
+        const post : Post = postResult.rows[0];
+
+        if(tags && tags.length > 0){
+            for(const name of tags){
+                const tagName = name.trim().toLowerCase();
+
+                const checkIfTagFound = `SELECT id FROM tags WHERE name = $1;`;
+                const tagResult = await client.query(checkIfTagFound, [tagName]);
+                let tagId;
+
+                if(tagResult.rows.length > 0){
+                    tagId = tagResult.rows[0].id;
+                }
+                else{
+                    const createTag = `INSERT INTO tags (name) VALUES ($1) RETURNING id;`;
+                    const createdTag = await client.query(createTag, [tagName]);
+                    tagId = createdTag.rows[0].id;
+                }
+
+                const linkTagsWithPost = `INSERT INTO post_tags (post_id, tag_id) 
+                    VALUES ($1, $2)
+                    ON CONFLICT DO NOTHING;`;
+                await client.query(linkTagsWithPost, [post.id, tagId]);
+            }
+        }
+
+        await client.query('COMMIT');
 
         return res.status(201).json({
             message: "Post created successfully",
@@ -24,10 +53,16 @@ export const createPost = async (req: Request, res: Response) =>{
         });
     }
     catch(error){
+        await client.query('ROLLBACK');
+
         console.error(error);
         return res.status(500).json({
             error: "Server error"
         });
+    }
+
+    finally{
+        client.release();
     } 
 }
 
@@ -56,7 +91,16 @@ export const getPosts = async (req: Request, res: Response) =>{
                 EXISTS(
                     SELECT 1 FROM likes
                     WHERE post_id = posts.id AND user_id = $1
-                ) AS "isLiked"
+                ) AS "isLiked",
+                COALESCE(
+                    (
+                        SELECT ARRAY_AGG(t.name)
+                        FROM tags t
+                        JOIN post_tags pt ON pt.tag_id = t.id
+                        WHERE pt.post_id = posts.id
+                    ), 
+                    '{}'
+                ) AS tags
             FROM posts 
             JOIN users ON posts.user_id = users.id
             WHERE 1=1
@@ -119,7 +163,16 @@ export const getUserPosts = async (req: Request, res: Response) => {
                 EXISTS(
                     SELECT 1 FROM likes 
                     WHERE post_id = posts.id AND user_id = $1
-                ) AS "isLiked"
+                ) AS "isLiked",
+                COALESCE(
+                    (
+                        SELECT ARRAY_AGG(t.name)
+                        FROM tags t
+                        JOIN post_tags pt ON pt.tag_id = t.id
+                        WHERE pt.post_id = posts.id
+                    ), 
+                    '{}'
+                ) AS tags
             FROM posts
             JOIN users ON users.id = posts.user_id  
             
