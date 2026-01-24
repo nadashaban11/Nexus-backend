@@ -34,6 +34,8 @@ export const createPost = async (req: Request, res: Response) =>{
 export const getPosts = async (req: Request, res: Response) =>{
 
     try{
+        const userId = Number(req.user?.id);
+
         const page = Number(req.query.page) || 1;
         const limit = Number(req.query.limit) || 10;
         const offset = (page - 1) * limit;
@@ -41,18 +43,26 @@ export const getPosts = async (req: Request, res: Response) =>{
         const s = req.query.search as string || "";
 
         let searchQuery = "";
-        let params: (string | number)[] = [limit, offset];
+        let params: (string | number)[] = [userId, limit, offset];
 
         if(s){
-            searchQuery = "WHERE posts.title ILIKE $3 OR posts.content ILIKE $3";
+            searchQuery = "AND (posts.title ILIKE $4 OR posts.content ILIKE $4)";
             params.push(`%${s}%`)
         }
 
         const query = `
-            SELECT * FROM posts
+            SELECT posts.*, users.user_name,
+                (SELECT COUNT(*):: int FROM likes WHERE post_id = posts.id) AS likes_count,
+                EXISTS(
+                    SELECT 1 FROM likes
+                    WHERE post_id = posts.id AND user_id = $1
+                ) AS "isLiked"
+            FROM posts 
+            JOIN users ON posts.user_id = users.id
+            WHERE 1=1
             ${searchQuery}
-            ORDER BY created_at DESC
-            LIMIT $1 OFFSET $2;
+            ORDER BY posts.created_at DESC
+            LIMIT $2 OFFSET $3;
         `;
 
         const result = await pool.query<Post>(query, params);
@@ -85,11 +95,11 @@ export const getPosts = async (req: Request, res: Response) =>{
 
 export const getUserPosts = async (req: Request, res: Response) => {
     try {
-        const userId = Number(req.user?.id); // ده دايماً $1
+        const userId = Number(req.user?.id); 
         
         const page = Number(req.query.page) || 1;
-        const limit = Number(req.query.limit) || 10; // ده دايماً $2
-        const offset = (page - 1) * limit;           // ده دايماً $3
+        const limit = Number(req.query.limit) || 10; 
+        const offset = (page - 1) * limit;      
         
         const s = req.query.search as string || "";
 
@@ -97,19 +107,30 @@ export const getUserPosts = async (req: Request, res: Response) => {
         let searchClause = "";
 
         if (s) {
-            searchClause = "AND (title ILIKE $4 OR content ILIKE $4)";
+            searchClause = "AND (posts.title ILIKE $4 OR posts.content ILIKE $4)";
             params.push(`%${s}%`);
         }
 
         const query = `
-            SELECT * FROM posts
-            WHERE user_id = $1 
+            SELECT 
+                posts.*, 
+                users.user_name,
+                (SELECT COUNT(*):: int FROM likes WHERE post_id = posts.id) AS likes_count,
+                EXISTS(
+                    SELECT 1 FROM likes 
+                    WHERE post_id = posts.id AND user_id = $1
+                ) AS "isLiked"
+            FROM posts
+            JOIN users ON users.id = posts.user_id  
+            
+            WHERE posts.user_id = $1
             ${searchClause}
-            ORDER BY created_at DESC
+            
+            ORDER BY posts.created_at DESC  
             LIMIT $2 OFFSET $3;
         `;
         
-        const result = await pool.query(query, params);
+        const result = await pool.query<Post & { user_name: string; likes_count: number; isLiked: boolean }>(query, params);
 
         const countQuery = s 
             ? `SELECT COUNT(*) FROM posts WHERE user_id = $1 AND (title ILIKE $2 OR content ILIKE $2)`
