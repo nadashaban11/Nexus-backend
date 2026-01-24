@@ -16,6 +16,7 @@ import {addComment,
         deleteComment,
         updateComment}
     from "../controllers/comment.controller.js";
+import { toggleLike } from "../controllers/like.controller.js";
 
 const postRouter = Router();
 
@@ -61,6 +62,11 @@ postRouter.patch('/comments/:id',
     authenticateToken, 
     validate(addCommentSchema), 
     updateComment
+);
+
+postRouter.post('/:id/like', 
+    authenticateToken, 
+    toggleLike
 );
 
 export default postRouter;
