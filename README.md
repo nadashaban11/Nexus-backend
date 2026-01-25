@@ -67,16 +67,16 @@ $ npm run dev
 | ![](https://img.shields.io/badge/GET-2E86C1?style=flat-square) | `/api/posts/:id` | Get single post details |
 | ![](https://img.shields.io/badge/PATCH-E67E22?style=flat-square) | `/api/posts/:id` | Edit a post |
 | ![](https://img.shields.io/badge/DELETE-C0392B?style=flat-square) | `/api/posts/:id` | Delete a post |
-| ![](https://img.shields.io/badge/POST-4682B4?style=flat-square) | `/api/likes/:postId` | Like or Dislike a post |
+| ![](https://img.shields.io/badge/POST-4682B4?style=flat-square) | `/api/posts/:postId/like` | Like or Dislike a post |
 
 ### 💬 Comments
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | ![](https://img.shields.io/badge/GET-2E86C1?style=flat-square) | `/api/comments` | List all comments |
 | ![](https://img.shields.io/badge/GET-2E86C1?style=flat-square) | `/api/posts/:postId/comments` | Get comments for a post |
-| ![](https://img.shields.io/badge/POST-4682B4?style=flat-square) | `/api/comments` | Add a comment |
-| ![](https://img.shields.io/badge/PUT-E67E22?style=flat-square) | `/api/comments/:id` | Edit a comment |
-| ![](https://img.shields.io/badge/DELETE-C0392B?style=flat-square) | `/api/comments/:id` | Delete a comment |
+| ![](https://img.shields.io/badge/POST-4682B4?style=flat-square) | `/api/posts/comments` | Add a comment |
+| ![](https://img.shields.io/badge/PUT-E67E22?style=flat-square) | `/api/posts/comments/:id` | Edit a comment |
+| ![](https://img.shields.io/badge/DELETE-C0392B?style=flat-square) | `/api/posts/comments/:id` | Delete a comment |
 
 ### 👤 Users
 | Method | Endpoint | Description |
