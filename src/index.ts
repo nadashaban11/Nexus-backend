@@ -28,6 +28,13 @@ app.get('/test-db', async (req: Request, res: Response) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+app.get('/', (req, res) => {
+  res.json({ message: "Welcome to Nexus API!" });
 });
+
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT || process.env.PORT, () => {
+      console.log(`Server is running on http://localhost:${PORT}`);
+  });
+}
+export default app;
