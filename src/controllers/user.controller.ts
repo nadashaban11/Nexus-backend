@@ -32,3 +32,24 @@ export const getProfile = async (req: Request, res: Response)=>{
         res.status(500).json({error: "Server error"});
     }
 }
+
+export const getUsers = async (req: Request, res: Response) => {
+    try {
+        const sqlQuery = `
+        SELECT id, first_name, last_name, user_name, email, created_at 
+        FROM users
+        ORDER BY created_at DESC;
+        `;
+        const result = await pool.query(sqlQuery);
+
+        res.status(200).json({
+            message: "Users fetched successfully",
+            users: result.rows
+        });
+    } catch (error: any) {
+        console.error("Error fetching users:", error);
+        res.status(500).json({
+            error: "Server error"
+        });
+    }
+};
